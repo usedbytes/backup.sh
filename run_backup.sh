@@ -45,9 +45,20 @@
 #
 # A snapshot can thus be resolved to its original mountpoint by taking its path,
 # and stripping the leading "/mnt/$LABEL/snapshots"
+#
+# The snapshots are sent to a "remote" repository (could be a different
+# filesystem on this host), and if that succeeds then all but one local
+# snapshots are removed.
+#
+# On the remote repository, the snapshots follow the same directory structure
+# described above, but are namespaced into directories named after the hostname
+# of the machine the snapshot belongs to.
 DEBUG=0
 
 SOURCE_MOUNTPOINT=$(realpath $1)
+
+REMOTE_MOUNTPOINT=/mnt/testimage/backups
+REMOTE_HOST="localhost"
 
 # Extract filesystem label from "btrfs filesystem show"
 function get_label() {
@@ -91,3 +102,24 @@ fi
 
 # Make the actual snapbtrex snapshot.
 snapbtrex $VERBOSE --path $SNAPSHOT_DIR -s $SOURCE_MOUNTPOINT
+
+# Send snapshot(s) to remote dir (could be different filesystem on this host)
+# snapbtrex improvements wanted:
+#  - btrfs send/recv without ssh for "local" remotes
+HOSTNAME=$(hostname)
+REMOTE_DIR=$(realpath -m "$REMOTE_MOUNTPOINT/$HOSTNAME/$SOURCE_MOUNTPOINT")
+echo "Assuming remote backup dir: $REMOTE_HOST:$REMOTE_DIR"
+
+# Send snapshot(s) to remote host
+# TODO: Check that the remote target directory exists
+snapbtrex $VERBOSE -S --path $SNAPSHOT_DIR --remote-host $REMOTE_HOST --remote-dir $REMOTE_DIR
+if [ $? == 0 ]
+then
+	# If we succeeded in sending to the remote, then we only need to keep one
+	# snapshot locally to use as the parent for next time. Clean up any others
+	echo "Snapshot(s) sent to remote, cleaning up local copies"
+	snapbtrex $VERBOSE -S --path $SNAPSHOT_DIR --target-backups 1 --keep-backups 1
+else
+	echo "ERROR: Couldn't send to remote. Keeping local snapshots"
+	exit 1
+fi
