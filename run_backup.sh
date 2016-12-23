@@ -45,6 +45,7 @@
 #
 # A snapshot can thus be resolved to its original mountpoint by taking its path,
 # and stripping the leading "/mnt/$LABEL/snapshots"
+DEBUG=0
 
 SOURCE_MOUNTPOINT=$(realpath $1)
 
@@ -66,6 +67,11 @@ function get_label() {
 	return 0
 }
 
+if [ $DEBUG != 0 ]
+then
+	VERBOSE="--verbose"
+fi
+
 get_label $SOURCE_MOUNTPOINT
 if [ $? != 0 ]
 then
@@ -84,4 +90,4 @@ fi
 # TODO: Check that $SNAPSHOT_DIR lives on the same device as the source
 
 # Make the actual snapbtrex snapshot.
-snapbtrex --verbose --path $SNAPSHOT_DIR -s $SOURCE_MOUNTPOINT
+snapbtrex $VERBOSE --path $SNAPSHOT_DIR -s $SOURCE_MOUNTPOINT
