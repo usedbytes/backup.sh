@@ -60,37 +60,14 @@ SOURCE_MOUNTPOINT=$(realpath $1)
 REMOTE_MOUNTPOINT=/mnt/testimage/backups
 REMOTE_HOST="localhost"
 
-# Extract filesystem label from "btrfs filesystem show"
-function get_label() {
-	FS_DETAILS=$(sudo btrfs filesystem show $1 2>&1)
-	RET=$?
-	if [ $RET != 0 ]
-	then
-		echo "$FS_DETAILS"
-		return $RET
-	fi
-
-	LABEL=$(echo $FS_DETAILS | grep "Label:" | sed -n "s/Label: '\(.*\)'.*$/\1/p")
-	if [ -z $LABEL ]
-	then
-		return 1
-	fi
-	return 0
-}
-
 if [ $DEBUG != 0 ]
 then
 	VERBOSE="--verbose"
 fi
 
-get_label $SOURCE_MOUNTPOINT
-if [ $? != 0 ]
-then
-	echo "ERROR: Couldn't determine mount-point for snapshots"
-	exit 1
-fi
+DIR=$(dirname `realpath $0`)
+source $DIR/local_tools.sh
 
-SNAPSHOT_DIR=$(realpath -m "/mnt/$LABEL/snapshots/$SOURCE_MOUNTPOINT")
 echo "Assuming local snapshots dir: $SNAPSHOT_DIR"
 if [ ! -d $SNAPSHOT_DIR ]
 then
