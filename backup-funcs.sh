@@ -39,8 +39,7 @@ function check_fs_label() {
 }
 
 # Check remote settings
-# Exit if a remote is configured but not available
-function remote_or_die() {
+function get_remote_config() {
 	if [ -z $REMOTE_HOST ]
 	then
 		echo "No remote host configured."
@@ -55,6 +54,15 @@ function remote_or_die() {
 	if [ $REMOTE_HOST == $LOCALHOST ]
 	then
 		REMOTE_HOST="localhost"
+	fi
+}
+
+# Exit if a remote is configured but not available
+function remote_or_die() {
+	get_remote_config
+	if [ $? != 0 ]
+	then
+		return 1
 	fi
 
 	# FIXME: Fix handling of $REMOTE_HOST == $LOCALHOST to not use ssh at all

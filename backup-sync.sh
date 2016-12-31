@@ -6,13 +6,15 @@ BACKUP_COMMANDS+=("sync")
 
 function sync_usage() {
 	cat >&2 <<EOM
-	sync [-k] MOUNTPOINT
+	sync [OPTION]... MOUNTPOINT
 		Synchronise MOUNTPOINT snapshots with the remote repository.
 
 		Options:
-		    -k       Keep local snapshots, even when they have been successfully
-		             sent to the remote. Default is to remove snapshots when
-		             they have been sent.
+		    -k              Keep local snapshots, even when they have been
+		                    successfully sent to the remote. Default is to
+		                    remove snapshots when they have been sent.
+		    -p seconds      Poll until the remote is available, with a period
+		                    of 'seconds'
 
 EOM
 }
@@ -20,13 +22,17 @@ EOM
 function sync_parse_args() {
 	# Defaults
 	KEEP_LOCAL=0
+	POLL=0
 
-	while getopts ":k" OPT
+	while getopts ":kp:" OPT
 	do
 		case $OPT in
 		k)
 			echo "Keeping local snapshots"
 			KEEP_LOCAL=1
+			;;
+		p)
+			POLL=$OPTARG
 			;;
 		\?)
 			echo "Unknown option: -$OPTARG" >&2
@@ -48,15 +54,41 @@ function sync_parse_args() {
 	MOUNTPOINT=$(realpath $1)
 }
 
+function sync_poll_for_remote() {
+	get_remote_config
+	if [ $? != 0 ]
+	then
+		exit 1
+	fi
+
+	echo "Polling for remote every $1 seconds"
+	while [ 1 == 1 ]
+	do
+		ssh $REMOTE_USER@$REMOTE_HOST cd 2> /dev/null
+		if [ $? == 0 ]
+		then
+			break
+		fi
+		echo -n .
+		sleep $1
+	done
+	echo ""
+}
+
 function sync_command() {
 	sync_parse_args $@
 
 	echo "Initialising backup for $MOUNTPOINT"
 
-	remote_or_die
-	if [ $? -ne 0 ]
+	if [ $POLL -gt 0 ]
 	then
-		exit 0
+		sync_poll_for_remote $POLL
+	else
+		remote_or_die
+		if [ $? -ne 0 ]
+		then
+			exit 0
+		fi
 	fi
 
 	get_label $MOUNTPOINT
