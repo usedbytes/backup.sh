@@ -6,7 +6,7 @@ BACKUP_COMMANDS+=("init")
 
 function usage_init() {
 	cat >&2 <<EOM
-	init
+	init MOUNTPOINT
 		Set up directories for backups for MOUNTPOINT; a snapshot directory on
 		the same filesystem, and if a remote repository is configured, then a
 		directory in the repo too.

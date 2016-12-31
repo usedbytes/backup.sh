@@ -6,7 +6,7 @@ BACKUP_COMMANDS+=("snapshot")
 
 function usage_snapshot() {
 	cat >&2 <<EOM
-	snapshot
+	snapshot MOUNTPOINT
 		Take a local snapshot of the given MOUNTPOINT.
 
 EOM

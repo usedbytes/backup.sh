@@ -6,8 +6,8 @@ BACKUP_COMMANDS+=("sync")
 
 function usage_sync() {
 	cat >&2 <<EOM
-	sync
-		Synchronise with the remote repository.
+	sync MOUNTPOINT
+		Synchronise MOUNTPOINT snapshots with the remote repository.
 
 EOM
 }

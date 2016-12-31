@@ -22,7 +22,7 @@ function usage_and_exit() {
 
 function usage() {
 	cat >&2 <<EOM
-Usage: $0 [-c config_file] COMMAND MOUNTPOINT
+Usage: $0 [-c config_file] COMMAND ...
 
 Options:
 	-c config_file      Config file to use, if not specified defaults to
