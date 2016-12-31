@@ -38,7 +38,7 @@ function init_command() {
 	fi
 
 	# Initialise remote
-	check_remote
+	remote_or_die
 	if [ $? -ne 0 ]
 	then
 		exit 0

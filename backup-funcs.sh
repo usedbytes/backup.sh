@@ -39,7 +39,8 @@ function check_fs_label() {
 }
 
 # Check remote settings
-function check_remote() {
+# Exit if a remote is configured but not available
+function remote_or_die() {
 	if [ -z $REMOTE_HOST ]
 	then
 		echo "No remote host configured."

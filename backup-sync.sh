@@ -53,7 +53,7 @@ function sync_command() {
 
 	echo "Initialising backup for $MOUNTPOINT"
 
-	check_remote
+	remote_or_die
 	if [ $? -ne 0 ]
 	then
 		exit 0
