@@ -6,21 +6,50 @@ BACKUP_COMMANDS+=("sync")
 
 function sync_usage() {
 	cat >&2 <<EOM
-	sync MOUNTPOINT
+	sync [-k] MOUNTPOINT
 		Synchronise MOUNTPOINT snapshots with the remote repository.
+
+		Options:
+		    -k       Keep local snapshots, even when they have been successfully
+		             sent to the remote. Default is to remove snapshots when
+		             they have been sent.
 
 EOM
 }
 
-KEEP_LOCAL=0
+function sync_parse_args() {
+	# Defaults
+	KEEP_LOCAL=0
 
-function sync_command() {
+	while getopts ":k" OPT
+	do
+		case $OPT in
+		k)
+			echo "Keeping local snapshots"
+			KEEP_LOCAL=1
+			;;
+		\?)
+			echo "Unknown option: -$OPTARG" >&2
+			exit 1
+			;;
+		:)
+			echo "ERROR: Option $OPTARG requires an argument" >&2
+			usage_and_exit
+			;;
+		esac
+	done
+
+	shift $(( $OPTIND - 1 ))
 	if [ $# -ne 1 ]
 	then
 		echo "Expected MOUNTPOINT, got '$@'" >&2
 		usage_and_exit
 	fi
 	MOUNTPOINT=$(realpath $1)
+}
+
+function sync_command() {
+	sync_parse_args $@
 
 	echo "Initialising backup for $MOUNTPOINT"
 
