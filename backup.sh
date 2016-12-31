@@ -1,93 +1,6 @@
 #!/bin/bash
 # Copyright Brian Starkey <stark3y@gmail.com>, 2016
 
-function usage_and_exit() {
-	cat >&2 <<EOM
-Usage: $0 [-c config_file] COMMAND MOUNTPOINT
-
-Options:
-	-c config_file      Config file to use, if not specified defaults to
-	                    /etc/backup.conf
-
-Commands:
-
-	init
-		Set up directories for backups for MOUNTPOINT; a snapshot directory on
-		the same filesystem, and if a remote repository is configured, then a
-		directory in the repo too.
-
-		This should be run once for each desired backup directory.
-
-	snapshot
-		Take a local snapshot of the given MOUNTPOINT.
-
-	sync
-		Synchronise with the remote repository.
-EOM
-	exit 1
-}
-
-if [ $# -eq 0 ]
-then
-	usage_and_exit
-fi
-
-# Default argument values
-CONFIG="/etc/backup.conf"
-KEEP_LOCAL=1
-
-# Argument parsing
-NARGS=0
-while [ $# -gt 0 ]
-do
-	getopts ":c:" OPT
-	if [ $? -eq 0 ]
-	then
-		case $OPT in
-		c)
-			CONFIG=$OPTARG
-			if [ ! -f $CONFIG ]
-			then
-				echo "ERROR: Config file $CONFIG doesn't exist"
-				exit 1
-			fi
-			# shift to 'consume' the filename argument
-			shift
-			;;
-		\?)
-			echo "Unknown option: -$OPTARG" >&2
-			exit 1
-			;;
-		:)
-			echo "ERROR: Option $OPTARG requires an argument" >&2
-			usage_and_exit
-			;;
-		esac
-	else
-		ARGS[$NARGS]=$1
-		NARGS=$(($NARGS + 1))
-	fi
-	shift
-done
-
-if [ $NARGS -gt 2 ]
-then
-	echo "ERROR: Excess arguments" >&2
-	usage_and_exit
-elif [ $NARGS -lt 2 ]
-then
-	echo "ERROR: COMMAND and MOUNTPOINT are required" >&2
-	usage_and_exit
-fi
-
-# Load the config
-source $CONFIG
-
-if [ $DEBUG -gt 0 ]
-then
-	VERBOSE="--verbose"
-fi
-
 # Helper functionality
 # Extract filesystem label from "btrfs filesystem show"
 function get_label() {
@@ -151,8 +64,90 @@ function check_remote() {
 	fi
 }
 
-COMMAND=$(echo -n "${ARGS[0]}" | tr '[A-Z]' '[a-z]')
-MOUNTPOINT=$(realpath ${ARGS[1]})
+# Implementation
+# Usage details
+function usage_and_exit() {
+	cat >&2 <<EOM
+Usage: $0 [-c config_file] COMMAND MOUNTPOINT
+
+Options:
+	-c config_file      Config file to use, if not specified defaults to
+	                    /etc/backup.conf
+
+Commands:
+
+	init
+		Set up directories for backups for MOUNTPOINT; a snapshot directory on
+		the same filesystem, and if a remote repository is configured, then a
+		directory in the repo too.
+
+		This should be run once for each desired backup directory.
+
+	snapshot
+		Take a local snapshot of the given MOUNTPOINT.
+
+	sync
+		Synchronise with the remote repository.
+EOM
+	exit 1
+}
+
+# Default argument values
+CONFIG="/etc/backup.conf"
+KEEP_LOCAL=0
+
+# Global arguents
+while getopts ":c:" OPT
+do
+		echo "Option $OPT optind: $OPTIND"
+		case $OPT in
+		c)
+			CONFIG=$OPTARG
+			if [ ! -f $CONFIG ]
+			then
+				echo "ERROR: Config file $CONFIG doesn't exist"
+				exit 1
+			fi
+			echo "Config: $OPTARG"
+			;;
+		\?)
+			echo "Unknown option: -$OPTARG" >&2
+			exit 1
+			;;
+		:)
+			echo "ERROR: Option $OPTARG requires an argument" >&2
+			usage_and_exit
+			;;
+		esac
+done
+
+if [ $OPTIND -gt $# ]
+then
+	# There aren't any more arguments
+	echo "Please specify a command" >&2
+	usage_and_exit
+fi
+
+# Load the config
+source $CONFIG
+
+if [ $DEBUG -gt 0 ]
+then
+	VERBOSE="--verbose"
+fi
+
+# Check the command and reset getopts
+shift $(( $OPTIND - 1 ))
+COMMAND=$(echo -n "$1" | tr '[A-Z]' '[a-z]')
+shift 1
+OPTIND=1
+
+if [ $# -ne 1 ]
+then
+	echo "Expected MOUNTPOINT, got '$@'" >&2
+	usage_and_exit
+fi
+MOUNTPOINT=$(realpath $1)
 
 case $COMMAND in
 	init)
