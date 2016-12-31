@@ -4,7 +4,7 @@
 
 BACKUP_COMMANDS+=("sync")
 
-function usage_sync() {
+function sync_usage() {
 	cat >&2 <<EOM
 	sync MOUNTPOINT
 		Synchronise MOUNTPOINT snapshots with the remote repository.
@@ -14,7 +14,7 @@ EOM
 
 KEEP_LOCAL=0
 
-function command_sync() {
+function sync_command() {
 	if [ $# -ne 1 ]
 	then
 		echo "Expected MOUNTPOINT, got '$@'" >&2

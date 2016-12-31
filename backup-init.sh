@@ -4,7 +4,7 @@
 
 BACKUP_COMMANDS+=("init")
 
-function usage_init() {
+function init_usage() {
 	cat >&2 <<EOM
 	init MOUNTPOINT
 		Set up directories for backups for MOUNTPOINT; a snapshot directory on
@@ -16,7 +16,7 @@ function usage_init() {
 EOM
 }
 
-function command_init() {
+function init_command() {
 	if [ $# -ne 1 ]
 	then
 		echo "Expected MOUNTPOINT, got '$@'" >&2

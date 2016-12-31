@@ -4,7 +4,7 @@
 
 BACKUP_COMMANDS+=("snapshot")
 
-function usage_snapshot() {
+function snapshot_usage() {
 	cat >&2 <<EOM
 	snapshot MOUNTPOINT
 		Take a local snapshot of the given MOUNTPOINT.
@@ -12,7 +12,7 @@ function usage_snapshot() {
 EOM
 }
 
-function command_snapshot() {
+function snapshot_command() {
 	if [ $# -ne 1 ]
 	then
 		echo "Expected MOUNTPOINT, got '$@'" >&2

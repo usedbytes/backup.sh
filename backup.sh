@@ -36,7 +36,7 @@ EOM
 	# Print usage for each command
 	for cmd in "${BACKUP_COMMANDS[@]}"
 	do
-		usage_${cmd}
+		${cmd}_usage
 	done
 }
 
@@ -102,7 +102,7 @@ for cmd in "${BACKUP_COMMANDS[@]}"
 do
 	if [ "$cmd" == "$COMMAND" ]
 	then
-		command_${cmd} $@
+		${cmd}_command $@
 		exit $?
 	fi
 done
