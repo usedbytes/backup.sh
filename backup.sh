@@ -39,7 +39,7 @@ EOM
 # Default global argument values
 CONFIG="/etc/backup.conf"
 
-# Global arguents
+# Global arguments
 while getopts ":c:" OPT
 do
 		echo "Option $OPT optind: $OPTIND"
@@ -80,6 +80,8 @@ fi
 OPTIND=1
 
 # Load the config
+# FIXME: Sourcing user-provided file, massive security hole
+# Potential solution: http://unix.stackexchange.com/a/206216
 source $CONFIG || exit 1
 
 if [ $DEBUG -gt 0 ]
