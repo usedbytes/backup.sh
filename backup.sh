@@ -16,12 +16,18 @@ source $DIR/backup-snapshot.sh
 source $DIR/backup-sync.sh
 
 function usage_and_exit() {
+	usage
+	exit 1
+}
+
+function usage() {
 	cat >&2 <<EOM
 Usage: $0 [-c config_file] COMMAND MOUNTPOINT
 
 Options:
 	-c config_file      Config file to use, if not specified defaults to
 	                    /etc/backup.conf
+	-h                  Display this usage message
 
 Commands:
 
@@ -32,17 +38,15 @@ EOM
 	do
 		usage_${cmd}
 	done
-
-	exit 1
 }
+
 
 # Default global argument values
 CONFIG="/etc/backup.conf"
 
 # Global arguments
-while getopts ":c:" OPT
+while getopts ":c:h" OPT
 do
-		echo "Option $OPT optind: $OPTIND"
 		case $OPT in
 		c)
 			CONFIG=$OPTARG
@@ -52,6 +56,10 @@ do
 				exit 1
 			fi
 			echo "Config: $OPTARG"
+			;;
+		h)
+			usage
+			exit 0
 			;;
 		\?)
 			echo "Unknown option: -$OPTARG" >&2
