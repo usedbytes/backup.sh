@@ -73,7 +73,10 @@ fi
 # Get the command and reset getopts
 shift $(( $OPTIND - 1 ))
 COMMAND=$(echo -n "$1" | tr '[A-Z]' '[a-z]')
-shift 1
+if [ $# -gt 0 ]
+then
+	shift 1
+fi
 OPTIND=1
 
 # Load the config
