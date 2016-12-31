@@ -1,6 +1,15 @@
 #!/bin/bash
 # Copyright Brian Starkey <stark3y@gmail.com>, 2016
 
+# http://stackoverflow.com/a/12694189
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+# Load helper functionality and commands
+BACKUP_COMMANDS=()
+source $DIR/backup-funcs.sh
+source $DIR/backup-init.sh
+
 function usage_and_exit() {
 	cat >&2 <<EOM
 Usage: $0 [-c config_file] COMMAND MOUNTPOINT
@@ -11,13 +20,14 @@ Options:
 
 Commands:
 
-	init
-		Set up directories for backups for MOUNTPOINT; a snapshot directory on
-		the same filesystem, and if a remote repository is configured, then a
-		directory in the repo too.
+EOM
 
-		This should be run once for each desired backup directory.
+	for cmd in "${BACKUP_COMMANDS[@]}"
+	do
+		usage_${cmd}
+	done
 
+	cat >&2 <<EOM
 	snapshot
 		Take a local snapshot of the given MOUNTPOINT.
 
@@ -62,28 +72,28 @@ then
 	usage_and_exit
 fi
 
-# Check the command and reset getopts
+# Get the command and reset getopts
 shift $(( $OPTIND - 1 ))
 COMMAND=$(echo -n "$1" | tr '[A-Z]' '[a-z]')
 shift 1
 OPTIND=1
 
-# http://stackoverflow.com/a/12694189
-DIR="${BASH_SOURCE%/*}"
-if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
-
 # Load the config and helpers
 source $CONFIG
-source $DIR/backup-funcs.sh
+if [ $? != 0 ]
+then
+	exit 1
+fi
 
 if [ $DEBUG -gt 0 ]
 then
 	VERBOSE="--verbose"
 fi
 
+# Execute the command
 case $COMMAND in
 	init)
-		source $DIR/backup-init.sh
+		command_init $@
 		;;
 	snapshot)
 		echo "Taking snapshot for $MOUNTPOINT"
