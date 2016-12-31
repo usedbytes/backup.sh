@@ -123,10 +123,19 @@ done
 
 if [ $OPTIND -gt $# ]
 then
-	# There aren't any more arguments
 	echo "Please specify a command" >&2
 	usage_and_exit
 fi
+
+# Check the command and reset getopts
+shift $(( $OPTIND - 1 ))
+COMMAND=$(echo -n "$1" | tr '[A-Z]' '[a-z]')
+shift 1
+OPTIND=1
+
+# http://stackoverflow.com/a/12694189
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 
 # Load the config
 source $CONFIG
@@ -136,43 +145,9 @@ then
 	VERBOSE="--verbose"
 fi
 
-# Check the command and reset getopts
-shift $(( $OPTIND - 1 ))
-COMMAND=$(echo -n "$1" | tr '[A-Z]' '[a-z]')
-shift 1
-OPTIND=1
-
-if [ $# -ne 1 ]
-then
-	echo "Expected MOUNTPOINT, got '$@'" >&2
-	usage_and_exit
-fi
-MOUNTPOINT=$(realpath $1)
-
 case $COMMAND in
 	init)
-		echo "Initialising backup for $MOUNTPOINT"
-
-		get_label $MOUNTPOINT
-		check_fs_label /mnt/$LABEL
-		SNAPSHOT_DIR=$(realpath -m "/mnt/$LABEL/snapshots/$MOUNTPOINT")
-
-		mkdir -p $SNAPSHOT_DIR
-		if [ ! -d $SNAPSHOT_DIR ]
-		then
-			echo "ERROR: Couldn't create local backup dir $SNAPSHOT_DIR"
-			exit 1
-		fi
-
-		# Initialise remote
-		check_remote
-		if [ $? -ne 0 ]
-		then
-			exit 0
-		fi
-		REMOTE_BACKUP_NAME=$LOCALHOST$MOUNTPOINT
-		echo "Setting up remote: $REMOTE_USER@$REMOTE_HOST:$REMOTE_REPO $REMOTE_BACKUP_NAME"
-		ssh $REMOTE_USER@$REMOTE_HOST backup_repo_add.sh $REMOTE_REPO $REMOTE_BACKUP_NAME
+		source $DIR/backup-init.sh
 		;;
 	snapshot)
 		echo "Taking snapshot for $MOUNTPOINT"
