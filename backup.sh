@@ -3,12 +3,17 @@
 
 # http://stackoverflow.com/a/12694189
 DIR="${BASH_SOURCE%/*}"
-if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+if [[ ! -d "$DIR" ]]
+then
+	DIR="$PWD"
+fi
 
 # Load helper functionality and commands
 BACKUP_COMMANDS=()
 source $DIR/backup-funcs.sh
 source $DIR/backup-init.sh
+source $DIR/backup-snapshot.sh
+source $DIR/backup-sync.sh
 
 function usage_and_exit() {
 	cat >&2 <<EOM
@@ -22,24 +27,17 @@ Commands:
 
 EOM
 
+	# Print usage for each command
 	for cmd in "${BACKUP_COMMANDS[@]}"
 	do
 		usage_${cmd}
 	done
 
-	cat >&2 <<EOM
-	snapshot
-		Take a local snapshot of the given MOUNTPOINT.
-
-	sync
-		Synchronise with the remote repository.
-EOM
 	exit 1
 }
 
-# Default argument values
+# Default global argument values
 CONFIG="/etc/backup.conf"
-KEEP_LOCAL=0
 
 # Global arguents
 while getopts ":c:" OPT
@@ -78,12 +76,8 @@ COMMAND=$(echo -n "$1" | tr '[A-Z]' '[a-z]')
 shift 1
 OPTIND=1
 
-# Load the config and helpers
-source $CONFIG
-if [ $? != 0 ]
-then
-	exit 1
-fi
+# Load the config
+source $CONFIG || exit 1
 
 if [ $DEBUG -gt 0 ]
 then
@@ -91,55 +85,14 @@ then
 fi
 
 # Execute the command
-case $COMMAND in
-	init)
-		command_init $@
-		;;
-	snapshot)
-		echo "Taking snapshot for $MOUNTPOINT"
+for cmd in "${BACKUP_COMMANDS[@]}"
+do
+	if [ "$cmd" == "$COMMAND" ]
+	then
+		command_${cmd} $@
+		exit $?
+	fi
+done
 
-		get_label $MOUNTPOINT
-		check_fs_label /mnt/$LABEL
-		SNAPSHOT_DIR=$(realpath -m "/mnt/$LABEL/snapshots/$MOUNTPOINT")
-
-		snapbtrex $VERBOSE --path $SNAPSHOT_DIR -s $MOUNTPOINT
-		if [ $? != 0 ]
-		then
-			echo "ERROR: Couldn't create snapshot"
-			exit 1
-		fi
-		;;
-	sync)
-		check_remote
-		if [ $? -ne 0 ]
-		then
-			exit 0
-		fi
-
-		get_label $MOUNTPOINT
-		check_fs_label /mnt/$LABEL
-		SNAPSHOT_DIR=$(realpath -m "/mnt/$LABEL/snapshots/$MOUNTPOINT")
-
-		echo "Syncing $MOUNTPOINT to remote: $REMOTE_USER@$REMOTE_HOST:$REMOTE_REPO $REMOTE_BACKUP_NAME"
-		snapbtrex $VERBOSE -S --path $SNAPSHOT_DIR --remote-host "$REMOTE_USER@$REMOTE_HOST" --remote-dir $REMOTE_REPO/$LOCALHOST/$MOUNTPOINT
-		if [ $? == 0 ]
-		then
-			if [ $KEEP_LOCAL -gt 0 ]
-			then
-				exit 0
-			fi
-
-			# If we succeeded in sending to the remote, then we only need to keep one
-			# snapshot locally to use as the parent for next time. Clean up any others
-			echo "Snapshot(s) sent to remote, cleaning up local copies"
-			snapbtrex $VERBOSE -S --path $SNAPSHOT_DIR --target-backups 1 --keep-backups 1
-		else
-			echo "ERROR: Couldn't send to remote. Keeping local snapshots"
-			exit 1
-		fi
-		;;
-	:)
-		echo "ERROR: Unknown command $COMMAND"
-		exit 1
-		;;
-esac
+echo "ERROR: Unknown command '$COMMAND'" >&2
+exit 1
