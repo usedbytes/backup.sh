@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup poll-and-sync service for %I
+
+[Service]
+Type=simple
+User=btrfs
+EnvironmentFile=/etc/backup.conf
+ExecStart=/usr/local/sbin/backup.sh sync -p 1800 %I

@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for backup at %I
+
+[Timer]
+Persistent=yes
+OnCalendar=daily
+Unit=backup@%i.service
+
+[Install]
+WantedBy=multi-user.target

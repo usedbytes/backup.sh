@@ -1,0 +1,12 @@
+[Unit]
+Description=Backup service for %I
+After=syslog.target
+After=network.target
+OnFailure=backup-poll-sync@%i.service
+
+[Service]
+Type=simple
+User=btrfs
+EnvironmentFile=/etc/backup.conf
+ExecStartPre=/usr/local/sbin/backup.sh snapshot %I
+ExecStart=/usr/local/sbin/backup.sh sync %I
