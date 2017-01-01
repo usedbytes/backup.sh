@@ -78,8 +78,6 @@ function sync_poll_for_remote() {
 function sync_command() {
 	sync_parse_args $@
 
-	echo "Initialising backup for $MOUNTPOINT"
-
 	if [ $POLL -gt 0 ]
 	then
 		sync_poll_for_remote $POLL
