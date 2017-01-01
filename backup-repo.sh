@@ -8,8 +8,12 @@ function repo_usage() {
 	cat >&2 <<EOM
 	repo SUBCOMMAND ...
 		Tasks relating to the management of a "remote" repo
+		These are intended to be run on the machine hosting the repo.
 
 		Subcommands:
+			init
+				Initialise the repo directory
+
 			add BACKUP_NAME
 				Add a new backup directory to the repository. This doesn't
 				involve sending any snapshots for the specified backup, only
@@ -35,7 +39,17 @@ function repo_usage() {
 EOM
 }
 
+function repo_check() {
+	if [ ! -f $REPO/.backup_list ]
+	then
+		echo "ERROR: Couldn't determine repository"
+		exit 1
+	fi
+}
+
+
 function repo_prune_command() {
+	repo_check
 	BACKUP_LIST=$REPO/.backup_list
 
 	if [ $# -lt 1 ]
@@ -72,6 +86,7 @@ function repo_prune_command() {
 }
 
 function repo_remove_command() {
+	repo_check
 	REMOVE_BACKUPS=0
 	FORCE=0
 
@@ -160,6 +175,8 @@ function repo_remove_command() {
 }
 
 function repo_add_command() {
+	repo_check
+
 	if [ $# -lt 1 ]
 	then
 		echo "ERROR: Command 'repo add' requires a BACKUP_NAME" >&2
@@ -180,18 +197,25 @@ function repo_add_command() {
 	fi
 }
 
-function repo_check() {
-	if [ ! -f $REPO/.backup_list ]
+function repo_init_command() {
+	if [ $# -gt 0 ]
 	then
-		echo "ERROR: Couldn't determine repository"
+		echo "ERROR: Excess arguments" >&2
+		usage_and_exit
+	fi
+
+	if [ -f $REPO/.backup_list ]
+	then
+		echo "ERROR: Found existing repo in $REPO" >&2
 		exit 1
 	fi
+
+	mkdir -p $REPO
+	touch $REPO/.backup_list
 }
 
 function repo_command() {
 	REPO=$REMOTE_REPO
-	repo_check $REPO
-
 	if [ $# -lt 1 ]
 	then
 		echo "ERROR: Command 'repo' requires a SUBCOMMAND" >&2
@@ -203,6 +227,9 @@ function repo_command() {
 	OPTIND=1
 
 	case $SUBCOMMAND in
+		init)
+			repo_init_command $@
+			;;
 		add)
 			repo_add_command $@
 			;;
