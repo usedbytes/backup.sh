@@ -25,7 +25,50 @@ function repo_usage() {
 					        exist in the repo's list (useful after a previous
 							'repo remove' without -r).
 
+			prune [BACKUP_NAME]
+				Prune backups. If BACKUP_NAME is specified, then only backups
+				belonging to it will be removed, otherwise the whole repo will
+				be pruned.
+				Backups are pruned according to the configured
+				REPO_TARGET_FREESPACE, REPO_TARGET_BACKUPS and REPO_MIN_BACKUPS
+
 EOM
+}
+
+function repo_prune_command() {
+	BACKUP_LIST=$REPO/.backup_list
+
+	if [ $# -lt 1 ]
+	then
+		echo "Pruning all backups in repo"
+		while IFS='' read -r SNAPSHOT_DIR || [[ -n "$SNAPSHOT_DIR" ]]
+		do
+			snapbtrex -S --path $SNAPSHOT_DIR \
+				--target-backups $REPO_TARGET_BACKUPS \
+				--keep-backups $REPO_MIN_BACKUPS \
+				--target-freespace $REPO_TARGET_FREESPACE
+		done < "$BACKUP_LIST"
+	else
+		BACKUP_NAME=$1
+		grep -q "^$REPO/$BACKUP_NAME\$" $BACKUP_LIST
+		if [ $? != 0 ]
+		then
+			echo "ERROR: Requested backup not in list."
+			exit 1
+		fi
+
+		if [ ! -d $REPO/$BACKUP_NAME ]
+		then
+			echo "ERROR: No such backup directory: $REPO/$BACKUP_NAME"
+			exit 1
+		fi
+
+		echo "Pruning backups for $BACKUP_NAME"
+		snapbtrex -S --path $REPO/$BACKUP_NAME \
+			--target-backups $REPO_TARGET_BACKUPS \
+			--keep-backups $REPO_MIN_BACKUPS \
+			--target-freespace $REPO_TARGET_FREESPACE
+	fi
 }
 
 function repo_remove_command() {
@@ -117,6 +160,11 @@ function repo_remove_command() {
 }
 
 function repo_add_command() {
+	if [ $# -lt 1 ]
+	then
+		echo "ERROR: Command 'repo add' requires a BACKUP_NAME" >&2
+		usage_and_exit
+	fi
 	BACKUP_NAME=$1
 	BACKUP_DIR=$REPO/$BACKUP_NAME
 
@@ -144,9 +192,9 @@ function repo_command() {
 	REPO=$REMOTE_REPO
 	repo_check $REPO
 
-	if [ $# -lt 2 ]
+	if [ $# -lt 1 ]
 	then
-		echo "ERROR: Command 'repo' requires at-least two arguments" >&2
+		echo "ERROR: Command 'repo' requires a SUBCOMMAND" >&2
 		usage_and_exit
 	fi
 
@@ -160,6 +208,9 @@ function repo_command() {
 			;;
 		remove)
 			repo_remove_command $@
+			;;
+		prune)
+			repo_prune_command $@
 			;;
 		*)
 			echo "ERROR: Unknown SUBCOMMAND: '$SUBCOMMAND'" >&2
