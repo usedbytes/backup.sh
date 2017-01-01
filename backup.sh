@@ -23,12 +23,20 @@ function usage_and_exit() {
 
 function usage() {
 	cat >&2 <<EOM
-Usage: $0 [-c config_file] COMMAND ...
+Usage: $0 [OPTION]... COMMAND ...
 
 Options:
-	-c config_file      Config file to use, if not specified defaults to
-	                    /etc/backup.conf
 	-h                  Display this usage message
+	-v                  Enable verbose output
+	-H hostname         Hostname for "remote" repository. If not specified,
+	                    the value of BACKUP_REMOTE_HOST environment variable is
+	                    used.
+	-U username         Username for "remote" repository. If not specified,
+	                    the value of BACKUP_REMOTE_USER environment variable is
+	                    used.
+	-R repodir          Directory for "remote" repository. If not specified,
+	                    the value of BACKUP_REMOTE_REPO environment variable is
+	                    used.
 
 Commands:
 
@@ -43,24 +51,29 @@ EOM
 
 
 # Default global argument values
-CONFIG="/etc/backup.conf"
+REMOTE_HOST=$BACKUP_REMOTE_HOST
+REMOTE_USER=$BACKUP_REMOTE_USER
+REMOTE_REPO=$BACKUP_REMOTE_REPO
 
 # Global arguments
-while getopts ":c:h" OPT
+while getopts ":c:hvH:U:R:" OPT
 do
 		case $OPT in
-		c)
-			CONFIG=$OPTARG
-			if [ ! -f $CONFIG ]
-			then
-				echo "ERROR: Config file $CONFIG doesn't exist"
-				exit 1
-			fi
-			echo "Config: $OPTARG"
-			;;
 		h)
 			usage
 			exit 0
+			;;
+		v)
+			DEBUG=1
+			;;
+		H)
+			REMOTE_HOST=$OPTARG
+			;;
+		U)
+			REMOTE_USER=$OPTARG
+			;;
+		R)
+			REMOTE_REPO=$OPTARG
 			;;
 		\?)
 			echo "Unknown option: -$OPTARG" >&2
@@ -87,11 +100,6 @@ then
 	shift 1
 fi
 OPTIND=1
-
-# Load the config
-# FIXME: Sourcing user-provided file, massive security hole
-# Potential solution: http://unix.stackexchange.com/a/206216
-source $CONFIG || exit 1
 
 if [ $DEBUG -gt 0 ]
 then

@@ -9,6 +9,7 @@ function repo_usage() {
 	repo SUBCOMMAND ...
 		Tasks relating to the management of a "remote" repo
 		These are intended to be run on the machine hosting the repo.
+		The repository directory is configured with the global "-R" option.
 
 		Subcommands:
 			init
@@ -27,14 +28,20 @@ function repo_usage() {
 					-r      Also remove all backups for the given BACKUP_NAME
 					-f      Force removal, even if the given backup name doesn't
 					        exist in the repo's list (useful after a previous
-							'repo remove' without -r).
+					        'repo remove' without -r).
 
-			prune [BACKUP_NAME]
+			prune [OPTION]... [BACKUP_NAME]
 				Prune backups. If BACKUP_NAME is specified, then only backups
 				belonging to it will be removed, otherwise the whole repo will
 				be pruned.
-				Backups are pruned according to the configured
-				REPO_TARGET_FREESPACE, REPO_TARGET_BACKUPS and REPO_MIN_BACKUPS
+
+				Options:
+					-m minimum      The minimum number of backups to keep.
+					                Defaults to 3
+					-s freespace    The desired freespace to reach by pruning
+					                backups. Defaults to 1G
+					-t target       The target number of backups to keep.
+					                Defaults to 10
 
 EOM
 }
@@ -50,6 +57,35 @@ function repo_check() {
 
 function repo_prune_command() {
 	repo_check
+	TARGET_FREESPACE=1G
+	TARGET_BACKUPS=10
+	MIN_BACKUPS=3
+
+	while getopts ":s:t:m:" OPT
+	do
+		case $OPT in
+		m)
+			MIN_BACKUPS=$OPTARG
+			;;
+		s)
+			TARGET_FREESPACE=$OPTARG
+			;;
+		t)
+			TARGET_BACKUPS=$OPTARG
+			;;
+		\?)
+			echo "Unknown option: -$OPTARG" >&2
+			usage_and_exit
+			;;
+		:)
+			echo "ERROR: Option $OPTARG requires an argument" >&2
+			usage_and_exit
+			;;
+		esac
+	done
+	shift $(( $OPTIND - 1 ))
+
+	BACKUP_NAME=$1
 	BACKUP_LIST=$REPO/.backup_list
 
 	if [ $# -lt 1 ]
@@ -58,9 +94,9 @@ function repo_prune_command() {
 		while IFS='' read -r SNAPSHOT_DIR || [[ -n "$SNAPSHOT_DIR" ]]
 		do
 			snapbtrex -S --path $SNAPSHOT_DIR \
-				--target-backups $REPO_TARGET_BACKUPS \
-				--keep-backups $REPO_MIN_BACKUPS \
-				--target-freespace $REPO_TARGET_FREESPACE
+				--target-backups $TARGET_BACKUPS \
+				--keep-backups $MIN_BACKUPS \
+				--target-freespace $TARGET_FREESPACE
 		done < "$BACKUP_LIST"
 	else
 		BACKUP_NAME=$1
@@ -79,9 +115,9 @@ function repo_prune_command() {
 
 		echo "Pruning backups for $BACKUP_NAME"
 		snapbtrex -S --path $REPO/$BACKUP_NAME \
-			--target-backups $REPO_TARGET_BACKUPS \
-			--keep-backups $REPO_MIN_BACKUPS \
-			--target-freespace $REPO_TARGET_FREESPACE
+			--target-backups $TARGET_BACKUPS \
+			--keep-backups $MIN_BACKUPS \
+			--target-freespace $TARGET_FREESPACE
 	fi
 }
 
