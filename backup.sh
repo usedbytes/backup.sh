@@ -14,6 +14,7 @@ source $DIR/backup-funcs.sh
 source $DIR/backup-init.sh
 source $DIR/backup-snapshot.sh
 source $DIR/backup-sync.sh
+source $DIR/backup-repo.sh
 
 function usage_and_exit() {
 	usage
