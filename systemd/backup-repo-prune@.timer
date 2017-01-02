@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for backup pruning on repo %I
+
+[Timer]
+Persistent=yes
+OnCalendar=weekly
+Unit=backup-repo-prune@%i.service
+
+[Install]
+WantedBy=multi-user.target

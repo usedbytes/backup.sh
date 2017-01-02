@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup pruning service for repo %I
+After=syslog.target
+
+[Service]
+Type=simple
+User=btrfs
+ExecStart=/usr/local/sbin/backup.sh -R %I repo prune
