@@ -1,0 +1,1 @@
+btrfs ALL=(ALL) NOPASSWD: /usr/bin/btrfs
